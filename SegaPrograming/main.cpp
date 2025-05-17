@@ -32,10 +32,11 @@ const int gStateHeight = 5;
 
 int main()
 {
-	CUtils<int> pUtils(20,20);
-	int temp = pUtils(15, 19);
+	CArray<int>* pUtils = new CArray<int>(20, 20);
+	int temp = (*pUtils)(15, 19);
 	temp = 20.0f;
-	pUtils(20,1) = 2;
+	(*pUtils)(20,1) = 2;
+
 	ifstream inputFile("stageData.txt", ifstream::binary);
 	inputFile.seekg(0, ifstream::end);
 	int fileSize = static_cast<int>(inputFile.tellg());
