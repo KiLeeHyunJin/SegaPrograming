@@ -21,12 +21,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Andromeda\소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="CUtils.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CUtils.h">
