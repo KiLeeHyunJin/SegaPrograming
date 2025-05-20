@@ -1,7 +1,5 @@
 #include "GameLib/Framework.h"
 
-
-#include "GameLib/Framework.h"
 using namespace GameLib;
 
 #include <fstream>
@@ -10,7 +8,7 @@ using namespace std;
 //関数プロト?イプ
 void readFile(char** buffer, int* size, const char* filename);
 void mainLoop();
-
+const unsigned pixelSize = 32;
 
 //二次元配列クラス
 //テンプレ?トになじみはあるだろうか？なければ基礎だけでも勉強しておこう。
@@ -18,7 +16,7 @@ void mainLoop();
 //これを使う時にはTのところにintとかboolとか入れて使う。
 template< class T > class Array2D {
 public:
-	Array2D() : mArray(0) {}
+	Array2D() : mArray(0), mSize0(0), mSize1(0){}
 	~Array2D() {
 		delete[] mArray;
 		mArray = 0;  //?イン?に0を入れるのはクセにしよう。
@@ -75,9 +73,8 @@ namespace GameLib {
 }
 
 void mainLoop() {
-	//最初のフレ??は初期化。最初の状態を?画して終わり。
 	if (!gState) {
-		const char* filename = "stageData.txt";
+		const char* filename = "IMG_1855.dds";
 		char* stageData;
 		int fileSize;
 		readFile(&stageData, &fileSize, filename);
@@ -86,16 +83,12 @@ void mainLoop() {
 			return;
 		}
 		gState = new State(stageData, fileSize);
-		//後始末
 		delete[] stageData;
 		stageData = 0;
-		//初回?画
 		gState->draw();
-		return; //そのまま終わる
+		return; 
 	}
 	bool cleared = false;
-	//メインル?プ
-	//クリア?ェック
 	if (gState->hasCleared()) {
 		cleared = true;
 	}
@@ -103,10 +96,24 @@ void mainLoop() {
 	cout << "a:left s:right w:up z:down. command?" << endl; //?作説明
 	char input;
 	cin >> input;
+
 	//更新
 	gState->update(input);
 	//?画
 	gState->draw();
+
+	if (input == 'q') {
+		Framework::instance().requestEnd();
+	}
+	//???ン押されてる？
+	if (Framework::instance().isEndRequested()) {
+		if (gState) {
+			delete gState;
+			gState = 0;
+		}
+		return;
+	}
+
 
 	if (cleared) {
 		//祝いのメッセ?ジ
@@ -133,6 +140,19 @@ void readFile(char** buffer, int* size, const char* filename) {
 	}
 }
 
+void drawCell(int x, int y, unsigned color)
+{
+	unsigned* vram = Framework::instance().videoMemory();
+	unsigned windowWidth = Framework::instance().width();
+	for (int i = 0; i < pixelSize; i++)
+	{
+		for (int j = 0; j < pixelSize; j++)
+		{
+			vram[(y * pixelSize + i) * windowWidth + (x * pixelSize + j)] = color;
+		}
+	}
+
+}
 
 State::State(const char* stageData, int size) {
 	//サイズ測定
@@ -195,8 +215,6 @@ void State::setSize(const char* stageData, int size) {
 }
 
 void State::draw() const {
-	unsigned* vram = Framework::instance().videoMemory();
-	unsigned windowWidth = Framework::instance().width();
 	for (int y = 0; y < mHeight; ++y) {
 		for (int x = 0; x < mWidth; ++x) {
 			Object o = mObjects(x, y);
@@ -218,7 +236,8 @@ void State::draw() const {
 				case OBJ_MAN: cout << 'p'; color = 0x00ff00; break;
 				}
 			}
-			vram[y * windowWidth + x] = color;
+			drawCell(x, y, color);
+			//vram[y * windowWidth + x] = color;
 		}
 		cout << endl;
 	}
