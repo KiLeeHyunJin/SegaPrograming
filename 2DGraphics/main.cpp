@@ -1,25 +1,35 @@
 #include "GameLib/Framework.h"
 
+
 using namespace GameLib;
 
 #include <fstream>
+#include <ddraw.h>
 using namespace std;
 
 //듫릶긵깓긣?귽긵
 void readFile(char** buffer, int* size, const char* filename);
 void mainLoop();
+unsigned getUnsigned(const char* p);
 const unsigned pixelSize = 32;
 
-//볫렅뙰봹쀱긏깋긚
-//긡깛긵깒?긣궸궶궣귒궼궇귡궬귣궎궔갎궶궚귢궽딈멳궬궚궳귖뺈떗궢궲궓궞궎갃
-//궞궻긏깋긚먬뙻궻뭷궳궼T궴궋궎긏깋긚궕궇귡궔궻귝궎궸댌귦귢갂
-//궞귢귩럊궎렄궸궼T궻궴궞귣궸int궴궔bool궴궔볺귢궲럊궎갃
+
+enum ImageID
+{
+	IMAGE_ID_PLAYER,
+	IMAGE_ID_WALL,
+	IMAGE_ID_BLOCK,
+	IMAGE_ID_BLOCK_ON_GOAL,
+	IMAGE_ID_GOAL,
+	IMAGE_ID_SPACE,
+};
+
 template< class T > class Array2D {
 public:
 	Array2D() : mArray(0), mSize0(0), mSize1(0){}
 	~Array2D() {
 		delete[] mArray;
-		mArray = 0;  //?귽깛?궸0귩볺귢귡궻궼긏긜궸궢귝궎갃
+		mArray = 0;  
 	}
 	void setSize(int size0, int size1) {
 		mSize0 = size0;
@@ -38,12 +48,42 @@ private:
 	int mSize1;
 };
 
+class Image
+{
+public:
+	Image(const char* fileName);
+	~Image(){}
+	int width()const { return mWidth; }
+	int height()const { return mHeight; }
+	const unsigned* data() const { return mData; }
+private:
+	int mWidth;
+	int mHeight;
+	unsigned* mData;
+};
+
+Image::Image(const char* fileName)
+{
+	mWidth = getUnsigned(&fileName[16]);
+	mHeight = getUnsigned(&fileName[12]);
+	mData = new unsigned[mWidth * mHeight];
+
+	for (unsigned i = 0; i < mHeight * mWidth; ++i)
+	{
+		mData[i] = getUnsigned(&fileName[128 + (i * 4)]);
+	}
+}
+
+
+
 //륉뫴긏깋긚
 class State {
 public:
 	State(const char* stageData, int size);
+	~State();
 	void update(char input);
 	void draw() const;
+	void drawPicture(int dstX, int dstY, int srcX, int srcY, int width, int height, Image* pImg)const;
 	bool hasCleared() const;
 private:
 	enum Object {
@@ -58,6 +98,9 @@ private:
 
 	int mWidth;
 	int mHeight;
+	
+private:
+	Image* mPImg;
 	Array2D< Object > mObjects;
 	Array2D< bool > mGoalFlags;
 };
@@ -74,18 +117,20 @@ namespace GameLib {
 
 void mainLoop() {
 	if (!gState) {
-		const char* filename = "IMG_1855.dds";
+		const char* stageName = "stageData.txt";
 		char* stageData;
 		int fileSize;
-		readFile(&stageData, &fileSize, filename);
+
+		readFile(&stageData, &fileSize, stageName);
 		if (!stageData) {
 			cout << "stage file could not be read." << endl;
 			return;
 		}
 		gState = new State(stageData, fileSize);
+		gState->draw();
+
 		delete[] stageData;
 		stageData = 0;
-		gState->draw();
 		return; 
 	}
 	bool cleared = false;
@@ -123,6 +168,16 @@ void mainLoop() {
 	}
 }
 
+unsigned getUnsigned(const char* p)
+{
+	const unsigned char* cuChr = reinterpret_cast<const unsigned char*>(p);
+	unsigned readUnsigned = cuChr[0];
+	readUnsigned |= cuChr[1] << 8;
+	readUnsigned |= cuChr[2] << 16;
+	readUnsigned |= cuChr[3] << 24;
+	return readUnsigned;
+}
+
 //---------------------댥돷듫릶믦?------------------------------------------
 
 void readFile(char** buffer, int* size, const char* filename) {
@@ -138,20 +193,6 @@ void readFile(char** buffer, int* size, const char* filename) {
 		*buffer = new char[*size];
 		in.read(*buffer, *size);
 	}
-}
-
-void drawCell(int x, int y, unsigned color)
-{
-	unsigned* vram = Framework::instance().videoMemory();
-	unsigned windowWidth = Framework::instance().width();
-	for (int i = 0; i < pixelSize; i++)
-	{
-		for (int j = 0; j < pixelSize; j++)
-		{
-			vram[(y * pixelSize + i) * windowWidth + (x * pixelSize + j)] = color;
-		}
-	}
-
 }
 
 State::State(const char* stageData, int size) {
@@ -190,6 +231,20 @@ State::State(const char* stageData, int size) {
 			++x;
 		}
 	}
+
+	const char* imgName = "nimotsuKunImage.dds";
+	int notUsed;
+	char* imgData;
+	readFile(&imgData, &notUsed, imgName);
+	mPImg = new Image(imgData);
+
+	delete imgData;
+	imgData = 0;
+}
+
+State::~State()
+{
+	delete mPImg;
 }
 
 void State::setSize(const char* stageData, int size) {
@@ -214,32 +269,51 @@ void State::setSize(const char* stageData, int size) {
 	}
 }
 
-void State::draw() const {
+void State::draw()  const
+{
 	for (int y = 0; y < mHeight; ++y) {
 		for (int x = 0; x < mWidth; ++x) {
 			Object o = mObjects(x, y);
 			bool goalFlag = mGoalFlags(x, y);
 			unsigned color = 0;
+			ImageID id = IMAGE_ID_SPACE;
 			if (goalFlag) {
 				switch (o) {
-				case OBJ_SPACE: cout << '.'; color = 0x0000ff; break;
-				case OBJ_WALL: cout << '#'; color = 0xffffff; break;
-				case OBJ_BLOCK: cout << 'O'; color = 0xff00ff; break;
-				case OBJ_MAN: cout << 'P'; color = 0x00ffff; break;
+				case OBJ_SPACE: id = IMAGE_ID_GOAL; break;
+				case OBJ_WALL: id = IMAGE_ID_WALL; break;
+				case OBJ_BLOCK: id = IMAGE_ID_BLOCK_ON_GOAL; break;
+				case OBJ_MAN: id = IMAGE_ID_PLAYER; break;
 				}
 			}
 			else {
 				switch (o) {
-				case OBJ_SPACE: cout << ' '; color = 0x000000; break;
-				case OBJ_WALL: cout << '#'; color = 0xffffff; break;
-				case OBJ_BLOCK: cout << 'o'; color = 0xff0000; break;
-				case OBJ_MAN: cout << 'p'; color = 0x00ff00; break;
+				case OBJ_SPACE: id = IMAGE_ID_SPACE; break;
+				case OBJ_WALL: id = IMAGE_ID_WALL; break;
+				case OBJ_BLOCK: id = IMAGE_ID_BLOCK; break;
+				case OBJ_MAN: id = IMAGE_ID_PLAYER; break;
 				}
 			}
-			drawCell(x, y, color);
+			drawPicture(x * 32, y * 32, id * 32, 0, 32, 32, mPImg);
 			//vram[y * windowWidth + x] = color;
 		}
 		cout << endl;
+	}
+}
+
+void State::drawPicture(int dstX, int dstY, int srcX, int srcY, int width, int height, Image* pImg) const
+{
+	Framework f = Framework::instance();
+	unsigned* vram = f.videoMemory();
+	int windowWidth = f.width();
+	int windowHeight = f.height();
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			int pos = ((y + dstY) * windowWidth) + (x + dstX);
+			unsigned* dst = &vram[pos];
+			*dst = pImg->data()[(y + srcY) * pImg->width() + (x + srcX)];
+		}
 	}
 }
 
@@ -302,8 +376,6 @@ void State::update(char input) {
 	}
 }
 
-//긳깓긞긏궻궴궞귣궻goalFlag궕덇궰궳귖false궶귞
-//귏궬긏깏귺궢궲궶궋
 bool State::hasCleared() const {
 	for (int y = 0; y < mHeight; ++y) {
 		for (int x = 0; x < mWidth; ++x) {
@@ -316,236 +388,3 @@ bool State::hasCleared() const {
 	}
 	return true;
 }
-
-
-
-//namespace GameLib
-//{
-//	enum Object {
-//		OBJ_SPACE			= 1 << 0,
-//		OBJ_WALL			= 1 << 1,
-//		OBJ_BLOCK			= 1 << 2,
-//		OBJ_MAN				= 1 << 3,
-//
-//		OBJ_GOAL			= 1 << 4,
-//		OBJ_MAN_ON_GOAL		= 1 << 5,
-//		OBJ_BLOCK_ON_GOAL	= 1 << 6,
-//
-//		OBJ_UNKNOWN			= 1 << 7,
-//	};
-//
-//	void Initialize(Object* state, int w, int h, const char* stageData);
-//	void Draw(const Object* state, int w, int h);
-//	void Update(Object* state, char input, int w, int h);
-//	void GetInput();
-//	bool CheckClear(const Object* state, int w, int h);
-//
-//	const char gStateData[] = "\
-//########\n\
-//# .. p #\n\
-//#oo    #\n\
-//#      #\n\
-//########";
-//
-//	const int gStateWidth = 8;
-//	const int gStateHeight = 5;
-//
-//
-//
-//	void Initialize(Object* state, int w, int h, const char* stageData)
-//	{
-//		const char* d = stageData;
-//		int x = 0;
-//		int y = 0;
-//		while (*d != '\0')
-//		{
-//			Object t;
-//			switch (*d)
-//			{
-//			case '#':	t = OBJ_WALL;			break;
-//			case ' ':	t = OBJ_SPACE;			break;
-//			case 'o':	t = OBJ_BLOCK;			break;
-//			case 'O':	t = OBJ_BLOCK_ON_GOAL;	break;
-//			case '.':	t = OBJ_GOAL;			break;
-//			case 'p':	t = OBJ_MAN;			break;
-//			case 'P':	t = OBJ_MAN_ON_GOAL;	break;
-//			case '\n':
-//				x = 0;
-//				++y;
-//				t = OBJ_UNKNOWN;		break;
-//			default:	t = OBJ_UNKNOWN;		break;
-//			}
-//			++d;
-//			if (t != OBJ_UNKNOWN)
-//			{
-//				state[y * w + x] = t;
-//				++x;
-//			}
-//		}
-//	}
-//
-//	void Draw(const Object* state, int w, int h)
-//	{
-//		unsigned int* vram = Framework::instance().videoMemory();
-//		unsigned windowWidth = Framework::instance().width();
-//		for (int y = 0; y < h; y++)
-//		{
-//			for (int x = 0; x < w; x++)
-//			{
-//				const Object o = state[y * w + x];
-//				bool goalFlag = o & (OBJ_BLOCK_ON_GOAL | OBJ_MAN_ON_GOAL | OBJ_GOAL) ;
-//				unsigned color = 0;
-//				if (goalFlag)
-//				{
-//					switch (o)
-//					{
-//						case OBJ_SPACE: cout << '.'; color = 0x0000ff;	break;
-//						case OBJ_WALL:	cout << '#'; color = 0xffffff;	break;
-//						case OBJ_BLOCK: cout << 'O'; color = 0xff00ff;	break;
-//						case OBJ_MAN:	cout << 'P'; color = 0x00ffff;	break;
-//						default:										break;
-//					}
-//				}
-//				else
-//				{
-//					switch (o)
-//					{
-//						case OBJ_SPACE: cout << ' '; color = 0x000000;	break;
-//						case OBJ_WALL:	cout << '#'; color = 0xffffff;	break;
-//						case OBJ_BLOCK: cout << 'o'; color = 0xff0000;	break;
-//						case OBJ_MAN:	cout << 'p'; color = 0x00ff00;	break;
-//						default:										break;
-//					}
-//				}
-//				vram[y * windowWidth + x] = color;
-//			}
-//		}
-//	}
-//
-//	void Update(Object* state, char input, int w, int h)
-//	{
-//		int dx = 0;
-//		int dy = 0;
-//		switch (input)
-//		{
-//		case 'a': dx = -1; break;
-//		case 's': dx = 1; break;
-//		case 'w': dy = -1; break;
-//		case 'z': dy = 1; break;
-//		}
-//		int i = 0;
-//		for (; i < w * h; i++)
-//		{
-//			if (state[i] & (OBJ_MAN_ON_GOAL | OBJ_MAN))
-//			{
-//				break;
-//			}
-//		}
-//		int x = i % w;
-//		int y = i / w;
-//
-//		int tx = x + dx;
-//		int ty = y + dy;
-//		if (tx < 0 || ty < 0 || tx >= w || ty >= h)
-//		{
-//			return;
-//		}
-//
-//		int p = y * w + x;
-//		int tp = ty * w + tx;
-//		if (state[tp] & OBJ_SPACE | OBJ_GOAL)
-//		{
-//			state[tp] = (state[tp] & OBJ_GOAL) ? OBJ_MAN_ON_GOAL : OBJ_MAN;
-//			state[p] = (state[p] & OBJ_MAN_ON_GOAL) ? OBJ_GOAL : OBJ_SPACE;
-//		}
-//		else if (state[tp] & OBJ_BLOCK | OBJ_BLOCK_ON_GOAL)
-//		{
-//			int tx2 = tx + dx;
-//			int ty2 = ty + dy;//플레이어가 이동할 위치 + 입력값 = 2칸 앞
-//			if (tx2 < 0 || ty2 < 0 || tx2 >= w || ty2 >= h)
-//			{
-//				return;
-//			}
-//
-//			int tp2 = (ty + dy) * w + (tx + dx);
-//			if (state[tp2] & OBJ_SPACE | OBJ_GOAL)
-//			{
-//				state[tp2] = (state[tp2] & OBJ_GOAL) ? OBJ_BLOCK_ON_GOAL : OBJ_BLOCK;
-//				state[tp] = (state[tp] & OBJ_BLOCK_ON_GOAL) ? OBJ_MAN_ON_GOAL : OBJ_MAN;
-//				state[p] = (state[p] & OBJ_MAN_ON_GOAL) ? OBJ_GOAL : OBJ_SPACE;
-//			}
-//
-//		}
-//
-//	}
-//
-//	void GetInput()
-//	{
-//	}
-//
-//	bool CheckClear(const Object* state, int w, int h)
-//	{
-//		for (int i = 0; i < w * h; i++)
-//		{
-//			if (state[i] & OBJ_BLOCK)
-//			{
-//				return false;
-//			}
-//		}
-//		return true;
-//	}
-//
-//	void Framework::update() {
-//		static unsigned i;
-//		static unsigned char red, green, blue;
-//		red = 0;
-//		green = 0;
-//		blue = 0;
-//
-//		{
-//
-//
-//			char c;
-//			cin >> c;
-//			cout << "Input Character is " << c << endl;
-//
-//			Object* state = new Object[gStateWidth * gStateHeight];
-//			Initialize(state, gStateWidth, gStateHeight, gStateData);
-//			while (true)
-//			{
-//				Draw(state, gStateWidth, gStateHeight);
-//				if (CheckClear(state, gStateWidth, gStateHeight))
-//				{
-//					break;
-//				}
-//				cout << "A: Left, S: RIght, W: Up, Z:Down. Command?" << endl;
-//				char input;
-//				cin >> input;
-//				Update(state, input, gStateWidth, gStateHeight);
-//				//Update(state, )
-//			}
-//			cout << "Congratulation's you win!" << endl;
-//
-//			delete[] state;
-//			state = nullptr;
-//			/*unsigned int* vram = videoMemory();
-//			red = 255;
-//			green = 255;
-//			blue = 255;
-//			unsigned int color = (red << 16) | (green << 8) | (blue << 0);
-//			for (size_t i = 100; i <= 200; i++)
-//			{
-//				for (size_t j = 100; j <= 200; j++)
-//				{
-//					vram[j * width() + i] = color;
-//
-//				}
-//			}*/
-//
-//			//i += 9973;
-//			//i %= (width() * height());
-//		}
-//
-//	}
-//}
-//
