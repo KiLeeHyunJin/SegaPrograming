@@ -19,7 +19,7 @@ enum ImageID
 	IMAGE_ID_PLAYER,
 	IMAGE_ID_WALL,
 	IMAGE_ID_BLOCK,
-	IMAGE_ID_BLOCK_ON_GOAL,
+	//IMAGE_ID_BLOCK_ON_GOAL,
 	IMAGE_ID_GOAL,
 	IMAGE_ID_SPACE,
 };
@@ -232,7 +232,7 @@ State::State(const char* stageData, int size) {
 		}
 	}
 
-	const char* imgName = "nimotsuKunImage.dds";
+	const char* imgName = "nimotsuKunImage2.dds";
 	int notUsed;
 	char* imgData;
 	readFile(&imgData, &notUsed, imgName);
@@ -273,27 +273,36 @@ void State::draw()  const
 {
 	for (int y = 0; y < mHeight; ++y) {
 		for (int x = 0; x < mWidth; ++x) {
-			Object o = mObjects(x, y);
+			const Object o = mObjects(x, y);
 			bool goalFlag = mGoalFlags(x, y);
-			unsigned color = 0;
-			ImageID id = IMAGE_ID_SPACE;
-			if (goalFlag) {
-				switch (o) {
-				case OBJ_SPACE: id = IMAGE_ID_GOAL; break;
-				case OBJ_WALL: id = IMAGE_ID_WALL; break;
-				case OBJ_BLOCK: id = IMAGE_ID_BLOCK_ON_GOAL; break;
-				case OBJ_MAN: id = IMAGE_ID_PLAYER; break;
+			
+			if (o != OBJ_WALL)
+			{
+				if (goalFlag)
+				{
+					drawPicture(x * 32, y * 32, IMAGE_ID_GOAL * 32, 0, 32, 32, mPImg);
+				}
+				else
+				{
+					drawPicture(x * 32, y * 32, IMAGE_ID_SPACE * 32, 0, 32, 32, mPImg);
+				}
+				ImageID id = IMAGE_ID_SPACE;
+				switch (o)
+				{
+				case OBJ_BLOCK: id = IMAGE_ID_BLOCK;	break;
+				case OBJ_MAN:	id = IMAGE_ID_PLAYER;	break;
+				}
+				if (id != IMAGE_ID_SPACE)
+				{
+					drawPicture(x * 32, y * 32, id * 32, 0, 32, 32, mPImg);
 				}
 			}
-			else {
-				switch (o) {
-				case OBJ_SPACE: id = IMAGE_ID_SPACE; break;
-				case OBJ_WALL: id = IMAGE_ID_WALL; break;
-				case OBJ_BLOCK: id = IMAGE_ID_BLOCK; break;
-				case OBJ_MAN: id = IMAGE_ID_PLAYER; break;
-				}
+			else
+			{
+				drawPicture(x * 32, y * 32, IMAGE_ID_WALL * 32, 0, 32, 32, mPImg);
 			}
-			drawPicture(x * 32, y * 32, id * 32, 0, 32, 32, mPImg);
+		
+			//그릴 좌표 위치, 이미지 잘라올 시작 위치, 이미지 크기, 이미지 픽셀 배열
 			//vram[y * windowWidth + x] = color;
 		}
 		cout << endl;
@@ -312,13 +321,17 @@ void State::drawPicture(int dstX, int dstY, int srcX, int srcY, int width, int h
 		{
 			int pos = ((y + dstY) * windowWidth) + (x + dstX);
 			unsigned* dst = &vram[pos];
-			*dst = pImg->data()[(y + srcY) * pImg->width() + (x + srcX)];
+			unsigned picxel = pImg->data()[(y + srcY) * pImg->width() + (x + srcX)];
+			if ((picxel >> 24) >= 128)
+			{
+				*dst = picxel;
+			}
 		}
 	}
 }
 
-void State::update(char input) {
-	//댷벍뜼빁궸빾듂
+void State::update(char input) 
+{
 	int dx = 0;
 	int dy = 0;
 	switch (input) {
