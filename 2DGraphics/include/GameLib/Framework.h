@@ -6,9 +6,9 @@ namespace GameLib{
 class Framework{
 public:
 	Framework();
-	///ユ?ザ定?関数。これを書く。
+	///ユーザ定義関数。これを書く。
 	void update();
-	///インス?ンス取得
+	///インスタンス取得
 	static Framework instance();
 	///画面幅取得
 	int width() const;
@@ -20,6 +20,13 @@ public:
 	void requestEnd();
 	///Frameworkに終了命令が出ているか調べる
 	bool isEndRequested() const;
+	//時刻を取得する(ミリ秒単位)
+	unsigned time() const;
+	//寝る(ミリ秒単位)
+	void sleep( int milliSeconds ) const;
+	//入力
+	bool isKeyOn( int c ) const;
+
 
 	//以下ライブラリ使用者は知らなくていい
 	void start( void* windowHandle );
@@ -29,18 +36,8 @@ public:
 	static void destroy();
 };
 
-//cinのラッパ
-class StandardInput{
-public:
-	StandardInput();
-	StandardInput& operator>>( char& );
-private:
-	bool mPrevEnterOn;
-};
-extern StandardInput cin;
-
 } //namespace GameLib
 
-#include "Base/DebugStream.h"
+#include "GameLib/Base/DebugStream.h"
 
 #endif

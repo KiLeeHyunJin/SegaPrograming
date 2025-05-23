@@ -7,7 +7,6 @@ using namespace GameLib;
 #include <ddraw.h>
 using namespace std;
 
-//듫릶긵깓긣?귽긵
 void readFile(char** buffer, int* size, const char* filename);
 void mainLoop();
 unsigned getUnsigned(const char* p);
@@ -75,16 +74,15 @@ Image::Image(const char* fileName)
 }
 
 
-
-//륉뫴긏깋긚
 class State {
 public:
 	State(const char* stageData, int size);
 	~State();
-	void update(char input);
+	void update();
 	void draw() const;
 	void drawPicture(int dstX, int dstY, int srcX, int srcY, int width, int height, Image* pImg)const;
 	bool hasCleared() const;
+	void getMoveDir(int& x, int& y) const;
 private:
 	enum Object {
 		OBJ_SPACE,
@@ -95,6 +93,13 @@ private:
 		OBJ_UNKNOWN,
 	};
 	void setSize(const char* stageData, int size);
+	unsigned char moveDir;
+	unsigned char moveCount;
+
+	bool prevFront;
+	bool prevLeft;
+	bool prevRight;
+	bool prevBack;
 
 	int mWidth;
 	int mHeight;
@@ -105,15 +110,14 @@ private:
 	Array2D< bool > mGoalFlags;
 };
 
-//긐깓?긫깑빾릶
 State* gState = 0;
 
-//깇?긗렳몧듫릶갃뭷릆궼mainLoop()궸듴뱤궛
 namespace GameLib {
 	void Framework::update() {
 		mainLoop();
 	}
 }
+#define SPACE Framework::instance()
 
 void mainLoop() {
 	if (!gState) {
@@ -128,7 +132,7 @@ void mainLoop() {
 		}
 		gState = new State(stageData, fileSize);
 		gState->draw();
-
+		
 		delete[] stageData;
 		stageData = 0;
 		return; 
@@ -137,22 +141,17 @@ void mainLoop() {
 	if (gState->hasCleared()) {
 		cleared = true;
 	}
-	//볺쀍롦벦
-	cout << "a:left s:right w:up z:down. command?" << endl; //?띿먣뼻
-	char input;
-	cin >> input;
+	//cout << "a:left s:right w:up z:down. command?" << endl; 
 
-	//뛛륷
-	gState->update(input);
-	//?됪
+	gState->update();
 	gState->draw();
 
-	if (input == 'q') {
-		Framework::instance().requestEnd();
-	}
-	//???깛돓궠귢궲귡갎
-	if (Framework::instance().isEndRequested()) {
-		if (gState) {
+
+
+	if (Framework::instance().isEndRequested()) 
+	{
+		if (gState) 
+		{
 			delete gState;
 			gState = 0;
 		}
@@ -160,8 +159,8 @@ void mainLoop() {
 	}
 
 
-	if (cleared) {
-		//뢪궋궻긽긞긜?긙
+	if (cleared) 
+	{
 		cout << "Congratulation! you win." << endl;
 		delete gState;
 		gState = 0;
@@ -178,11 +177,9 @@ unsigned getUnsigned(const char* p)
 	return readUnsigned;
 }
 
-//---------------------댥돷듫릶믦?------------------------------------------
-
 void readFile(char** buffer, int* size, const char* filename) {
 	ifstream in(filename, ifstream::binary);
-	if (!in) {
+	if (!in) {                     
 		*buffer = 0;
 		*size = 0;
 	}
@@ -195,17 +192,15 @@ void readFile(char** buffer, int* size, const char* filename) {
 	}
 }
 
-State::State(const char* stageData, int size) {
-	//긖귽긛뫇믦
+State::State(const char* stageData, int size) 
+{
 	setSize(stageData, size);
-	//봹쀱둴뺎
 	mObjects.setSize(mWidth, mHeight);
 	mGoalFlags.setSize(mWidth, mHeight);
-	//룊딖뭠궳뻹귕궴궘
 	for (int y = 0; y < mHeight; ++y) {
 		for (int x = 0; x < mWidth; ++x) {
-			mObjects(x, y) = OBJ_WALL; //궇귏궯궫븫빁궼빮
-			mGoalFlags(x, y) = false; //긕?깑궣귗궶궋
+			mObjects(x, y) = OBJ_WALL;
+			mGoalFlags(x, y) = false; 
 		}
 	}
 	int x = 0;
@@ -221,7 +216,7 @@ State::State(const char* stageData, int size) {
 		case '.': t = OBJ_SPACE; goalFlag = true; break;
 		case 'p': t = OBJ_MAN; break;
 		case 'P': t = OBJ_MAN; goalFlag = true; break;
-		case '\n': x = 0; ++y; t = OBJ_UNKNOWN; break; //둂뛱룉뿚
+		case '\n': x = 0; ++y; t = OBJ_UNKNOWN; break;
 		default: t = OBJ_UNKNOWN; break;
 		}
 		if (t != OBJ_UNKNOWN) 
@@ -240,6 +235,14 @@ State::State(const char* stageData, int size) {
 
 	delete imgData;
 	imgData = 0;
+
+	prevFront = false;
+	prevLeft = false;
+	prevRight = false;
+	prevBack = false;
+
+	moveDir = 0;
+	moveCount = 0;
 }
 
 State::~State()
@@ -248,8 +251,7 @@ State::~State()
 }
 
 void State::setSize(const char* stageData, int size) {
-	mWidth = mHeight = 0; //룊딖돸
-	//뙸띪댧뭫
+	mWidth = mHeight = 0; 
 	int x = 0;
 	int y = 0;
 	for (int i = 0; i < size; ++i) {
@@ -260,7 +262,6 @@ void State::setSize(const char* stageData, int size) {
 			break;
 		case '\n':
 			++y;
-			//띍묈뭠뛛륷
 			mWidth = max(mWidth, x);
 			mHeight = max(mHeight, y);
 			x = 0;
@@ -294,19 +295,31 @@ void State::draw()  const
 				}
 				if (id != IMAGE_ID_SPACE)
 				{
-					drawPicture(x * 32, y * 32, id * 32, 0, 32, 32, mPImg);
+					int _x(x), _y(y );
+					if (id == IMAGE_ID_PLAYER)
+					{
+						int dirX(0), dirY(0);
+						getMoveDir(dirX, dirY);
+						drawPicture(
+							(_x - (dirX)) * 32 + (dirX * moveCount),
+							(_y - (dirY)) * 32 + (dirY * moveCount), id * 32, 0, 32, 32, mPImg);
+					}
+					else
+					{
+						drawPicture(_x * 32, _y * 32, id * 32, 0, 32, 32, mPImg);
+					}
 				}
 			}
 			else
 			{
+				//그릴 좌표 위치, 이미지 잘라올 시작 위치, 이미지 크기, 이미지 픽셀 배열
 				drawPicture(x * 32, y * 32, IMAGE_ID_WALL * 32, 0, 32, 32, mPImg);
 			}
-		
-			//그릴 좌표 위치, 이미지 잘라올 시작 위치, 이미지 크기, 이미지 픽셀 배열
-			//vram[y * windowWidth + x] = color;
 		}
 		cout << endl;
 	}
+
+
 }
 
 void State::drawPicture(int dstX, int dstY, int srcX, int srcY, int width, int height, Image* pImg) const
@@ -330,21 +343,50 @@ void State::drawPicture(int dstX, int dstY, int srcX, int srcY, int width, int h
 	}
 }
 
-void State::update(char input) 
+void State::update() 
 {
 	int dx = 0;
 	int dy = 0;
-	switch (input) {
-	case 'a': dx = -1; break; //뜺
-	case 's': dx = 1; break; //덭
-	case 'w': dy = -1; break; //뤵갃Y궼돷궕긵깋긚
-	case 'z': dy = 1; break; //돷갃
+
+	if (moveDir != 0)
+	{
+		if (moveCount == 32)
+		{
+			moveCount = 0;
+			moveDir = 0;
+		}
+		else
+		{
+			moveCount++;
+			return;
+		}
 	}
-	//뭒궋빾릶뼹귩궰궚귡갃
+
+	bool front = SPACE.isKeyOn('w');
+	bool left = SPACE.isKeyOn('a');
+	bool right = SPACE.isKeyOn('s');
+	bool back = SPACE.isKeyOn('z');
+
+	if (right != prevRight)
+	{
+		prevRight = right; dx = 1;
+	}
+	if (left != prevLeft)
+	{
+		prevLeft = left; dx = -1;
+	}
+	if (front != prevFront)
+	{
+		prevFront = front; dy = -1;
+	}
+	if (back != prevBack)
+	{
+		prevBack = back; dy = 1;
+	}
+
 	int w = mWidth;
 	int h = mHeight;
 	Array2D< Object >& o = mObjects;
-	//릐띆뷭귩뙚랊
 	int x, y;
 	x = y = -1;
 	bool found = false;
@@ -359,34 +401,52 @@ void State::update(char input)
 			break;
 		}
 	}
-	//댷벍
-	//댷벍뚣띆뷭
 	int tx = x + dx;
 	int ty = y + dy;
-	//띆뷭궻띍묈띍룷?긃긞긏갃둖귢궲궋귢궽븉떀됀
-	if (tx < 0 || ty < 0 || tx >= w || ty >= h) {
+	if (tx < 0 || ty < 0 || tx >= w || ty >= h) 
+	{
 		return;
 	}
-	//A.궩궻뺴뛀궕뗴뵏귏궫궼긕?깑갃릐궕댷벍갃
-	if (o(tx, ty) == OBJ_SPACE) {
+	if (o(tx, ty) == OBJ_SPACE) 
+	{
 		o(tx, ty) = OBJ_MAN;
 		o(x, y) = OBJ_SPACE;
-		//B.궩궻뺴뛀궕뵠갃궩궻뺴뛀궻렅궻?긚궕뗴뵏귏궫궼긕?깑궳궇귢궽댷벍갃
+
+		if (dx != 0)
+		{
+			moveDir = dx < 0 ? 1 : 2;
+		}
+		if (dy != 0)
+		{
+			moveDir = dy < 0 ? 4 : 8;
+		}
 	}
-	else if (o(tx, ty) == OBJ_BLOCK) {
-		//2?긚먩궕붝댪볙궔?긃긞긏
+	else if (o(tx, ty) == OBJ_BLOCK) 
+	{
 		int tx2 = tx + dx;
 		int ty2 = ty + dy;
-		if (tx2 < 0 || ty2 < 0 || tx2 >= w || ty2 >= h) { //돓궧궶궋
+		if (tx2 < 0 || ty2 < 0 || tx2 >= w || ty2 >= h) 
+		{ 
 			return;
 		}
-		if (o(tx2, ty2) == OBJ_SPACE) {
-			//룈렅볺귢뫶궑
+		if (o(tx2, ty2) == OBJ_SPACE) 
+		{
 			o(tx2, ty2) = OBJ_BLOCK;
 			o(tx, ty) = OBJ_MAN;
 			o(x, y) = OBJ_SPACE;
+
+			if (dx != 0)
+			{
+				moveDir = dx < 0 ? 1 : 2;
+			}
+			if (dy != 0)
+			{
+				moveDir = dy < 0 ? 4 : 8;
+			}
 		}
 	}
+
+
 }
 
 bool State::hasCleared() const {
@@ -400,4 +460,24 @@ bool State::hasCleared() const {
 		}
 	}
 	return true;
+}
+
+void State::getMoveDir(int& x, int& y) const
+{
+	if (moveDir == 0)
+	{
+		x = 0;
+		y = 0;
+		return;
+	}
+	int xValue = moveDir & 3;
+	int yValue = moveDir & 12;
+	if (xValue != 0) //값이 있다면
+	{
+		x = xValue == 1 ? -1 : 1; // 1이라면 왼쪽 2라면 오른쪽
+	}
+	if (yValue != 0)
+	{
+		y = yValue == 4 ? -1 : 1; //4라면 위로 8이라면 아래로
+	}
 }
