@@ -1,17 +1,70 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="리소스 파일">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    <Filter Include="99.Utils">
+      <UniqueIdentifier>{c443fa1b-eb5c-45e7-b95b-a88c0b669878}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Sequance">
+    <Filter Include="00.Sequence">
       <UniqueIdentifier>{f125493c-b1c0-4963-a731-9ec1b732b9a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00.Sequence\Game">
+      <UniqueIdentifier>{aa0678a2-4989-4637-bbd6-9b9833eaa02d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01.Resource">
+      <UniqueIdentifier>{4676eebf-5afa-4480-8e1b-aa8fc6c7e403}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00.Sequence\Hierarchy">
+      <UniqueIdentifier>{e04fe01c-811c-49b0-b774-e481817e46ea}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Sequance</Filter>
+    <ClCompile Include="Sequence\Parent.cpp">
+      <Filter>00.Sequence</Filter>
     </ClCompile>
+    <ClCompile Include="Sequence\Game\GameParent.cpp">
+      <Filter>00.Sequence\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Resource\File.cpp">
+      <Filter>01.Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\Image.cpp">
+      <Filter>01.Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Sequence\GameOver.cpp">
+      <Filter>00.Sequence\Hierarchy</Filter>
+    </ClCompile>
+    <ClCompile Include="Sequence\Title.cpp">
+      <Filter>00.Sequence\Hierarchy</Filter>
+    </ClCompile>
+    <ClCompile Include="Sequence\Ending.cpp">
+      <Filter>00.Sequence\Hierarchy</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Sequence\Parent.h">
+      <Filter>00.Sequence</Filter>
+    </ClInclude>
+    <ClInclude Include="Sequence\Game\GameParent.h">
+      <Filter>00.Sequence\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\File.h">
+      <Filter>01.Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Image.h">
+      <Filter>01.Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Array2D.h">
+      <Filter>99.Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Sequence\Ending.h">
+      <Filter>00.Sequence\Hierarchy</Filter>
+    </ClInclude>
+    <ClInclude Include="Sequence\GameOver.h">
+      <Filter>00.Sequence\Hierarchy</Filter>
+    </ClInclude>
+    <ClInclude Include="Title.h">
+      <Filter>00.Sequence\Hierarchy</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

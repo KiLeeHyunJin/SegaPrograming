@@ -71,17 +71,18 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <PublicIncludeDirectories>$(SolutionDir)2DAction;$(PublicIncludeDirectories)</PublicIncludeDirectories>
+    <PublicIncludeDirectories>$(PublicIncludeDirectories)</PublicIncludeDirectories>
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)2DAction\include</AdditionalIncludeDirectories>
       <ExternalWarningLevel>Level4</ExternalWarningLevel>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -132,6 +133,23 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Resource\File.cpp" />
+    <ClCompile Include="Resource\Image.cpp" />
+    <ClCompile Include="Sequence\Ending.cpp" />
+    <ClCompile Include="Sequence\GameOver.cpp" />
+    <ClCompile Include="Sequence\Game\GameParent.cpp" />
+    <ClCompile Include="Sequence\Parent.cpp" />
+    <ClCompile Include="Sequence\Title.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Resource\File.h" />
+    <ClInclude Include="Resource\Image.h" />
+    <ClInclude Include="Sequence\Ending.h" />
+    <ClInclude Include="Sequence\GameOver.h" />
+    <ClInclude Include="Sequence\Game\GameParent.h" />
+    <ClInclude Include="Sequence\Parent.h" />
+    <ClInclude Include="Title.h" />
+    <ClInclude Include="Utils\Array2D.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
